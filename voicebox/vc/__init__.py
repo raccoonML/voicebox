@@ -1,18 +1,31 @@
-from voicebox.ui import UI
-import traceback
+from voicebox.vc.ui import UI
+import librosa
 import sys
+import traceback
+
+"""
+Voicebox Voice Conversion
+
+Your project needs to provide the following interfaces to use this Voicebox UI.
+
+voice_obj.sample_rate          # Sample rate in Hz
+voice_obj.source_action(wav)   # Class method to handle a loaded source wav, returns: spec
+voice_obj.target_action(wav)   # Class method to handle a loaded target wav, returns: spec
+voice_obj.converted_action()   # Class method to perform voice conversion, returns: wav, spec
+"""
 
 class Voicebox:
-    def __init__(self, source_func, target_func, converted_func, sample_rate, window_title=""):
+    def __init__(self, voice_obj, window_title=""):
         # Prevent errors from crashing the window
         sys.excepthook = self.excepthook
 
-        # Initialize variables
-        self.source_func = source_func
-        self.target_func = target_func
-        self.converted_func = converted_func
-        self.sample_rate = sample_rate
+        # Process inputs
+        self.voice_obj = voice_obj
 
+        if len(window_title) == 0:
+            window_title = "Voicebox"
+
+        # Initialize variables
         self.source_wav = None
         self.target_wav = None
         self.converted_wav = None
@@ -65,25 +78,39 @@ class Voicebox:
             return self.converted_wav
 
     def play(self, wavtype):
-        self.ui.play(self.get_wav(wavtype), self.sample_rate)
+        self.ui.play(self.get_wav(wavtype), self.voice_obj.sample_rate)
         
     def save(self, wavtype):
-        self.ui.save_audio_file(self.get_wav(wavtype), self.sample_rate)
+        self.ui.save_audio_file(self.get_wav(wavtype), self.voice_obj.sample_rate)
 
     def load_from_browser(self, fpath, wavtype):
         if fpath == "":
             return 
-        else:
-            self.fpath = fpath
 
+        # Load wav at the project's sample rate
+        wav, _ = librosa.load(str(fpath), self.voice_obj.sample_rate)
+
+        # Provide voice object with the wav
         if wavtype == "source":
-            self.source_wav = self.source_func(self)
-        if wavtype == "target":
-            self.target_wav = self.target_func(self)
+            self.source_wav = wav
+            spec = self.voice_obj.source_action(wav)
+        else:
+            self.target_wav = wav
+            spec = self.voice_obj.target_action(wav)
+
+        # Draw the spectrogram
+        if spec is not None:
+            self.draw_spec(spec, wavtype)
+
         self.update_buttons()
 
     def convert(self):
-        self.converted_wav = self.converted_func(self)
+        # Call the conversion
+        self.converted_wav, spec = self.voice_obj.converted_action()
+        # Draw the spectrogram
+        if spec is not None:
+            self.draw_spec(spec, "converted")
+
         self.update_buttons()
 
     def draw_spec(self, spec, wavtype):
@@ -118,12 +145,3 @@ class Voicebox:
             self.ui.converted_conv_button.setDisabled(True)
         else:
             self.ui.converted_conv_button.setDisabled(False)
-
-    def disable_all_buttons(self):
-            self.ui.source_load_button.setDisabled(True)
-            self.ui.source_play_button.setDisabled(True)
-            self.ui.target_load_button.setDisabled(True)
-            self.ui.target_play_button.setDisabled(True)
-            self.ui.converted_conv_button.setDisabled(True)
-            self.ui.converted_play_button.setDisabled(True)
-            self.ui.converted_save_button.setDisabled(True)

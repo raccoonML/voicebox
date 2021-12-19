@@ -1,10 +1,20 @@
-from voicebox import Voicebox
-from voicebox_helper import Voicebox_Helper
-from sample_project import hparams
+from voicebox.vc import Voicebox
+from sample_project import Sample_Project
+
+
+"""
+This is an example of how to use a predefined Voicebox UI with a sample project.
+
+Your run_voicebox.py can include command-line arguments with argparse,
+and perform additional setup actions needed for your project.
+
+The project needs to provide some interfaces to Voicebox to integrate with the UI.
+See sample_project.py for a minimal example of those interfaces.
+"""
 
 if __name__ == '__main__':
-    # Instantiate the helper, which in turn instantiates the project's inference class.
-    helper = Voicebox_Helper()
+    # Initialize the project
+    sample_project = Sample_Project()
 
-    # Start voicebox
-    Voicebox(helper.load_source, helper.load_target, helper.convert, hparams.sample_rate)
+    # Start voice conversion UI for project
+    Voicebox(sample_project, window_title="Sample Project")
