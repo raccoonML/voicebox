@@ -4,3 +4,6 @@ SoundFile
 matplotlib
 PyQt5
 sounddevice
+scipy
+torch
+torchaudio
